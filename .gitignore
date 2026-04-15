@@ -1,0 +1,14 @@
+.idea/
+.vscode/
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+/data
+/notebook
+*.csv
+*.xlsx
+
+venv/
+.env
