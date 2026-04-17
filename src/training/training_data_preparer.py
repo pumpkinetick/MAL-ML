@@ -37,7 +37,7 @@ class TrainingDataPreparer:
 
         self.preprocessor = self.get_preprocessor()
 
-    def get_preprocessor(self):
+    def get_preprocessor(self) -> ColumnTransformer:
         transformers = [
             ('num', Pipeline([
                 ('impute', SimpleImputer(strategy='median')),
