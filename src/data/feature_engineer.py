@@ -5,12 +5,38 @@ import pandas as pd
 
 
 class FeatureEngineer:
+    """
+    Builds historical, time-aware features from the cleaned anime dataset.
+
+    For each row, the engineer uses only data from earlier years
+    (optionally restricted to the past ``k_years``)
+    to compute metrics such as past performance, momentum, consistency, and experience
+    for multivalued attributes like studios, producers, genres, and themes.
+
+    :param pd.DataFrame cleaned_dataset: Already-cleaned dataset produced by ``DataCleaner``.
+
+    :ivar expanded_dataset: Dataset extended with historical feature columns.
+    :ivar historical_features: Names of the columns added by the engineer.
+    """
+
     def __init__(self, cleaned_dataset: pd.DataFrame):
         self.expanded_dataset = cleaned_dataset.copy()
 
         self.historical_features = list()
 
     def expand_dataset(self, k_years: int):
+        """
+        Adds historical feature columns to ``expanded_dataset``.
+
+        For ``Studios``, ``Producers``, ``Genres``, and ``Themes``,
+        a past-performance average and a momentum slope are computed.
+        For ``Studios`` and ``Producers``,
+        score consistency and total experience are additionally computed.
+
+        :param int k_years: Size of the rolling window (in years) used when
+            aggregating historical performance and momentum. Consistency
+            uses the same window; experience uses the full history.
+        """
         for col in ['Studios', 'Producers', 'Genres', 'Themes']:
             self._add_historical_metric(
                 source_col=col,
@@ -54,6 +80,27 @@ class FeatureEngineer:
                                func: Callable,
                                k_years: int | None = None
                                ):
+        """
+        Computes a single historical metric and appends it as a new
+        column ``"{source_col}_{metric_name}"`` to ``expanded_dataset``.
+
+        The dataset is expected to be sorted chronologically so that
+        only past entries contribute to each row's metric. For every
+        row, the method collects the history of each entity listed in
+        ``source_col`` (comma-separated) that is older than the row's
+        release year (optionally within a ``k_years`` window) and
+        applies ``func`` to aggregate those histories into a single
+        score. Afterward, the current row's score is added to each
+        entity's history.
+
+        :param str source_col: Name of the column containing a
+            comma-separated list of entities (e.g. ``'Studios'``).
+        :param str metric_name: Suffix used to name the generated column.
+        :param Callable func: Aggregation function that takes a list of valid
+            per-entity history lists and returns a numeric score.
+        :param int | None k_years: Optional rolling window size in years.
+            If ``None``, the entire past is considered.
+        """
         history = dict()
 
         def get_metric(row: pd.Series) -> float:
@@ -90,6 +137,18 @@ class FeatureEngineer:
 
     @staticmethod
     def _calculate_momentum(valid_histories: list) -> float:
+        """
+        Estimates a momentum score by comparing the average score of
+        the most recent half of each history with the average of the
+        older half, then averaging these differences across entities.
+
+        :param list valid_histories: List of per-entity history lists,
+            each containing ``(year, score)`` tuples. Entities with
+            fewer than two past entries are skipped.
+
+        :return: Mean of the newer-minus-older averages across all
+            eligible entities, or ``0`` if none are eligible.
+        """
         slopes = list()
         for valid in valid_histories:
             if len(valid) >= 2:

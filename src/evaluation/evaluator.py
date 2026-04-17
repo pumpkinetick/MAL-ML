@@ -10,6 +10,21 @@ from sklearn.pipeline import Pipeline
 
 
 class Evaluator:
+    """
+    Computes evaluation metrics and diagnostics for a trained
+    regression pipeline.
+
+    Supports overall regression metrics (MAE, RMSE, R²),
+    per-season NDCG ranking scores, per-source error breakdowns,
+    side-by-side score comparisons for a specific season,
+    and feature importance extraction from the underlying Random Forest.
+
+    :param Pipeline model: Trained ``scikit-learn`` ``Pipeline`` with a
+        ``'preprocessor'`` step and a ``'regressor'`` step.
+
+    :ivar model: The wrapped pipeline.
+    """
+
     def __init__(self, model: Pipeline):
         self.model = model
 
@@ -19,6 +34,18 @@ class Evaluator:
                             X_test: pd.DataFrame,
                             y_test: pd.Series
                             ) -> pd.DataFrame:
+        """
+        Computes MAE, RMSE, and R² on both the training and test sets.
+
+        :param pd.DataFrame X_train: Training feature matrix.
+        :param pd.Series y_train: Training target values.
+        :param pd.DataFrame X_test: Test feature matrix.
+        :param pd.Series y_test: Test target values.
+
+        :return: ``DataFrame`` with one row per dataset
+            (``'Train'`` and ``'Test'``) and columns
+            ``'MAE'``, ``'RMSE'``, ``'R$^2$'``.
+        """
         y_train_pred = self.model.predict(X_train)
         y_test_pred = self.model.predict(X_test)
 
@@ -42,6 +69,22 @@ class Evaluator:
                           y_test: pd.Series,
                           target_year: int
                           ) -> pd.DataFrame:
+        """
+        Computes the NDCG ranking score for each season of a target
+        year, treating true scores as relevance values.
+
+        Seasons with fewer than two test items are skipped.
+
+        :param pd.DataFrame test_dataset: Test subset including
+            the ``'Premiered'`` column.
+        :param pd.DataFrame X_test: Test feature matrix aligned
+            with ``test_dataset``.
+        :param pd.Series y_test: Test target values aligned
+            with ``test_dataset``.
+        :param int target_year: Year whose four seasons should be scored.
+
+        :return: ``DataFrame`` with columns ``'Season'`` and ``'NDCG'``.
+        """
         y_pred = self.model.predict(X_test)
 
         seasons = ['Winter', 'Spring', 'Summer', 'Fall']
@@ -65,6 +108,23 @@ class Evaluator:
                              y_test: pd.Series,
                              target_season: str
                              ) -> pd.DataFrame:
+        """
+        Returns the actual and predicted scores (and their difference)
+        for all test items that premiered in a specific season.
+
+        :param pd.DataFrame test_dataset: Test subset including
+            the ``'Premiered'`` column.
+        :param pd.DataFrame X_test: Test feature matrix aligned
+            with ``test_dataset``.
+        :param pd.Series y_test: Test target values aligned
+            with ``test_dataset``.
+        :param str target_season: Season label to filter by,
+            e.g. ``'Fall 2024'``.
+
+        :return: ``DataFrame`` with columns ``'Actual Score'``,
+            ``'Predicted Score'``, and ``'Difference'``. An empty
+            ``DataFrame`` is returned if no rows match.
+        """
         y_pred = self.model.predict(X_test)
 
         mask = test_dataset['Premiered'] == target_season
@@ -81,6 +141,21 @@ class Evaluator:
                               X_test: pd.DataFrame,
                               y_test: pd.Series
                               ) -> pd.DataFrame:
+        """
+        Computes MAE, RMSE, and row count for each ``Source`` value in
+        the test set, sorted ascending by MAE. The ``'Other'`` bucket
+        is excluded.
+
+        :param pd.DataFrame test_dataset: Test subset including
+            the ``'Source'`` column.
+        :param pd.DataFrame X_test: Test feature matrix aligned
+            with ``test_dataset``.
+        :param pd.Series y_test: Test target values aligned
+            with ``test_dataset``.
+
+        :return: ``DataFrame`` with columns ``'Source'``, ``'MAE'``,
+            ``'RMSE'``, and ``'Count'``.
+        """
         y_pred = self.model.predict(X_test)
 
         source_metrics = list()
@@ -103,6 +178,14 @@ class Evaluator:
         return pd.DataFrame(source_metrics).sort_values(by='MAE')
 
     def get_feature_importances(self) -> pd.DataFrame:
+        """
+        Extracts feature importances from the Random Forest regressor,
+        resolving feature names through the preprocessing
+        ``ColumnTransformer`` (including nested pipelines).
+
+        :return: ``DataFrame`` with columns ``'Feature'`` and
+            ``'Importance'``, sorted descending by importance.
+        """
         preprocessor = self.model.named_steps['preprocessor']
 
         feature_names = list()

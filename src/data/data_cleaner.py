@@ -5,15 +5,37 @@ import pandas as pd
 
 
 class DataCleaner:
+    """
+    Cleans the raw MyAnimeList dataset.
+
+    Filters out irrelevant rows and columns, fixes data types
+    (notably parsing the ``Duration`` field into minutes),
+    groups rare source values into a single ``'Other'`` bucket,
+    and orders the dataset chronologically by release year and season.
+
+    :param pd.DataFrame dataset: Raw anime dataset to be cleaned.
+
+    :ivar cleaned_dataset: Working copy of the dataset that is updated
+        in place by each cleaning step.
+    """
+
     def __init__(self, dataset: pd.DataFrame):
         self.cleaned_dataset = dataset.copy()
 
     def clean_dataset(self):
+        """
+        Runs the full cleaning pipeline on ``cleaned_dataset``.
+        """
         self.filter_dataset()
         self.fix_dtypes()
         self.sort_dataset()
 
     def filter_dataset(self):
+        """
+        Selects relevant columns, drops rows with missing key values,
+        keeps only finished-airing TV entries, and groups rare sources
+        (fewer than 10 occurrences) under ``'Other'``.
+        """
         management_cols = [
             'myanimelist_id', 'Type', 'Status',
             'Premiered', 'Released_Season', 'Released_Year'
@@ -47,6 +69,12 @@ class DataCleaner:
         )
 
     def fix_dtypes(self):
+        """
+        Converts columns to their proper types:
+        ``Released_Year`` to ``int``, trims whitespace from ``Rating``,
+        and parses ``Duration`` strings (e.g. ``"24 min"`` or ``"30 sec"``)
+        into a numeric number of minutes.
+        """
         self.cleaned_dataset['Released_Year'] = (
             self.cleaned_dataset['Released_Year'].astype(int)
         )
@@ -69,6 +97,10 @@ class DataCleaner:
         )
 
     def sort_dataset(self):
+        """
+        Sorts the dataset chronologically by ``Released_Year`` and then
+        by ``Released_Season`` (Winter → Spring → Summer → Fall).
+        """
         season_order = ['Winter', 'Spring', 'Summer', 'Fall']
 
         self.cleaned_dataset['Released_Season'] = pd.Categorical(
