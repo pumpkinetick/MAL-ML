@@ -25,7 +25,7 @@ class Visualizer:
             id_vars='Dataset', var_name='Metric', value_name='Value'
         )
 
-        fig, axes = plt.subplots(1, 3, figsize=(12, 8))
+        fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(12, 8))
 
         for i, metric in enumerate(['MAE', 'RMSE', 'R$^2$']):
             sns.barplot(
@@ -59,7 +59,15 @@ class Visualizer:
             used only in the plot title.
         """
         plt.figure(figsize=(8, 6))
-        sns.barplot(data=seasonal_ndcg_df, x='Season', y='NDCG')
+        sns.barplot(
+            data=seasonal_ndcg_df,
+            x='Season', y='NDCG',
+            palette={'Winter': '#8FB8CF',
+                     'Spring': '#98B486',
+                     'Summer': '#d4a368',
+                     'Fall': '#B07D62'},
+            hue='Season'
+        )
         plt.title(f'Seasonal NDCG for {target_year}')
         y_min = max(0, min(seasonal_ndcg_df['NDCG']) - 0.1)
         plt.ylim(y_min, 1)
@@ -106,6 +114,9 @@ class Visualizer:
         :param int top_n: Number of top features to display. Defaults to ``20``.
         """
         plt.figure(figsize=(10, 8))
-        sns.barplot(x='Importance', y='Feature', data=importance_df.head(top_n))
+        sns.barplot(
+            data=importance_df.head(top_n),
+            x='Importance', y='Feature'
+        )
         plt.title(f'Top {top_n} Features by Importance')
         plt.show()
