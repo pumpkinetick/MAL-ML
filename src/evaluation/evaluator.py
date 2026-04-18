@@ -124,10 +124,11 @@ class Evaluator:
                              ) -> pd.DataFrame:
         """
         Returns the actual and predicted scores (and their difference)
-        for all test items that premiered in a specific season.
+        for all test items that premiered in a specific season,
+        sorted by absolute error.
 
         :param pd.DataFrame test_dataset: Test subset including
-            the ``'Premiered'`` column.
+            the ``'Premiered'`` and ``'Title'`` columns.
         :param pd.DataFrame X_test: Test feature matrix aligned
             with ``test_dataset``.
         :param pd.Series y_test: Test target values aligned
@@ -135,9 +136,9 @@ class Evaluator:
         :param str target_season: Season label to filter by,
             e.g. ``'Fall 2024'``.
 
-        :return: ``DataFrame`` with columns ``'Actual Score'``,
-            ``'Predicted Score'``, and ``'Difference'``. An empty
-            ``DataFrame`` is returned if no rows match.
+        :return: ``DataFrame`` with columns ``'Title'``, ``'Actual Score'``,
+            ``'Predicted Score'``, and ``'Difference'``, sorted by
+            prediction accuracy.
         """
         y_pred = self.model.predict(X_test)
 
@@ -146,11 +147,18 @@ class Evaluator:
 
         mask = test_dataset['Premiered'] == target_season
         if mask.any():
-            return pd.DataFrame({
+            comparison_df = pd.DataFrame({
+                'Title': test_dataset[mask]['title'].values,
                 'Actual Score': y_test[mask].values,
                 'Predicted Score': y_pred[np.where(mask)[0]],
                 'Difference': y_pred[np.where(mask)[0]] - y_test[mask].values
             })
+
+            comparison_df['Abs_Error'] = comparison_df['Difference'].abs()
+            comparison_df = comparison_df.sort_values(by='Abs_Error', ascending=True)
+
+            return comparison_df.drop(columns=['Abs_Error'])
+
         return pd.DataFrame()
 
     def get_metrics_by_source(self,
