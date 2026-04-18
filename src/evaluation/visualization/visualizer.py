@@ -25,7 +25,7 @@ class Visualizer:
             id_vars='Dataset', var_name='Metric', value_name='Value'
         )
 
-        fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(12, 8))
+        fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(12, 6))
 
         for i, metric in enumerate(['MAE', 'RMSE', 'R$^2$']):
             sns.barplot(
@@ -194,7 +194,7 @@ class Visualizer:
         :param pd.DataFrame comparison_df: ``DataFrame`` with columns
             ``'Actual Score'``, ``'Predicted Score'``, and ``'Difference'``.
         """
-        fig, (ax_scatter, ax_violin) = plt.subplots(nrows=1, ncols=2, figsize=(16, 7))
+        fig, (ax_scatter, ax_violin) = plt.subplots(nrows=1, ncols=2, figsize=(14, 7))
 
         lims = [
             min(comparison_df['Actual Score'].min(), comparison_df['Predicted Score'].min()),
@@ -224,7 +224,6 @@ class Visualizer:
 
         ax_violin.set_title('Distribution of Prediction Errors (Residuals)')
         ax_violin.set_ylabel('Difference')
-        ax_violin.minorticks_on()
 
         fig.tight_layout()
         plt.show()
