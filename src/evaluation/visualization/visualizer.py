@@ -139,11 +139,13 @@ class Visualizer:
     @staticmethod
     def plot_cumulative_score_performance(cumulative_df: pd.DataFrame):
         """
-        Plots MAE and NDCG metrics across cumulative score thresholds.
+        Plots MAE and NDCG metrics across cumulative score thresholds,
+        comparing model NDCG against a random baseline.
 
         :param pd.DataFrame cumulative_df: ``DataFrame`` as returned by
             ``Evaluator.get_cumulative_score_metrics()``, with columns
-             ``'Threshold'``, ``'MAE'``, ``'NDCG'``, and ``'Count'``.
+            ``'Threshold'``, ``'MAE'``, ``'NDCG'``, ``'Random NDCG'``,
+            and ``'Count'``.
         """
         fig, ax_mae = plt.subplots(figsize=(12, 6))
 
@@ -158,11 +160,17 @@ class Visualizer:
         ax_ndcg = ax_mae.twinx()
         sns.lineplot(
             data=cumulative_df, x='Threshold', y='NDCG', ax=ax_ndcg,
-            color='#8FB8CF', marker='s', label='NDCG',
+            color='#8FB8CF', marker='s', label='Model NDCG',
             markeredgewidth=0, markeredgecolor='none'
         )
+        sns.lineplot(
+            data=cumulative_df, x='Threshold', y='Random NDCG', ax=ax_ndcg,
+            color='#8FB8CF', linestyle='--', alpha=0.5, label='Random Baseline'
+        )
         ax_ndcg.set_ylabel('Average Seasonal NDCG')
-        y_min = max(0, min(cumulative_df['NDCG']) - 0.01)
+
+        all_ndcg_vals = pd.concat([cumulative_df['NDCG'], cumulative_df['Random NDCG']])
+        y_min = max(0, min(all_ndcg_vals.dropna()) - 0.01)
         ax_ndcg.set_ylim(y_min, 1.0)
 
         ax_ndcg.grid(visible=True, which='major', axis='both', linestyle='-', alpha=0.1)

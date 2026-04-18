@@ -242,8 +242,8 @@ class Evaluator:
                                      step: float = 1.0
                                      ) -> pd.DataFrame:
         """
-        Computes MAE and average seasonal NDCG for cumulative score
-        thresholds (e.g., Score >= 1, >= 2, ..., >= 9).
+        Computes MAE, average seasonal NDCG, and a random NDCG baseline for
+        cumulative score thresholds (e.g., Score >= 1, >= 2, ..., >= 9).
 
         :param pd.DataFrame test_dataset: Test subset including
             the ``'Score'`` column.
@@ -254,7 +254,7 @@ class Evaluator:
         :param float step: The increment between thresholds. Defaults to 1.0.
 
         :return: ``DataFrame`` with columns ``'Threshold'``, ``'MAE'``,
-            ``'NDCG'``, and ``'Count'``.
+            ``'NDCG'``, ``'Random NDCG'``, and ``'Count'``.
         """
         y_pred = self.model.predict(X_test)
 
@@ -269,6 +269,7 @@ class Evaluator:
                 relevant_seasons = test_dataset[mask]['Premiered'].unique()
 
                 seasonal_ndcg = list()
+                random_ndcg = list()
                 for season in relevant_seasons:
                     s_mask = (test_dataset['Premiered'] == season) & mask
                     if s_mask.sum() > 1:
@@ -276,10 +277,14 @@ class Evaluator:
                         s_pred = y_pred[np.where(s_mask)[0]]
                         seasonal_ndcg.append(ndcg_score([s_true], [s_pred]))
 
+                        s_pred_random = np.random.permutation(s_pred)
+                        random_ndcg.append(ndcg_score([s_true], [s_pred_random]))
+
                 cumulative_results.append({
-                    'Threshold': f'≥{t:.1f}',
+                    'Threshold': f'{t:.1f}≤',
                     'MAE': current_mae,
                     'NDCG': np.mean(seasonal_ndcg) if seasonal_ndcg else np.nan,
+                    'Random NDCG': np.mean(random_ndcg) if random_ndcg else np.nan,
                     'Count': mask.sum()
                 })
 
