@@ -239,11 +239,13 @@ class Evaluator:
                                      test_dataset: pd.DataFrame,
                                      X_test: pd.DataFrame,
                                      y_test: pd.Series,
-                                     step: float = 1.0
+                                     step: float = 1.0,
+                                     random_runs: int = 10,
+                                     seed: int = 42
                                      ) -> pd.DataFrame:
         """
-        Computes MAE, average seasonal NDCG, and a random NDCG baseline for
-        cumulative score thresholds (e.g., Score >= 1, >= 2, ..., >= 9).
+        Computes MAE, average seasonal NDCG, and a stable random NDCG baseline.
+        The baseline is the mean of multiple seeded random permutations.
 
         :param pd.DataFrame test_dataset: Test subset including
             the ``'Score'`` column.
@@ -252,11 +254,16 @@ class Evaluator:
         :param pd.Series y_test: Test target values aligned
             with ``test_dataset``.
         :param float step: The increment between thresholds. Defaults to 1.0.
+        :param int random_runs: Number of random attempts to average for
+            the baseline.
+        :param int seed: Seed for reproducibility.
 
         :return: ``DataFrame`` with columns ``'Threshold'``, ``'MAE'``,
             ``'NDCG'``, ``'Random NDCG'``, and ``'Count'``.
         """
         y_pred = self.model.predict(X_test)
+
+        np.random.seed(seed)
 
         thresholds = np.arange(1.0, 10.0, step)
 
@@ -269,22 +276,27 @@ class Evaluator:
                 relevant_seasons = test_dataset[mask]['Premiered'].unique()
 
                 seasonal_ndcg = list()
-                random_ndcg = list()
+                seasonal_random_ndcg = list()
                 for season in relevant_seasons:
                     s_mask = (test_dataset['Premiered'] == season) & mask
                     if s_mask.sum() > 1:
                         s_true = y_test[s_mask].values
                         s_pred = y_pred[np.where(s_mask)[0]]
+
                         seasonal_ndcg.append(ndcg_score([s_true], [s_pred]))
 
-                        s_pred_random = np.random.permutation(s_pred)
-                        random_ndcg.append(ndcg_score([s_true], [s_pred_random]))
+                        run_scores = list()
+                        for _ in range(random_runs):
+                            s_pred_rand = np.random.permutation(s_pred)
+                            run_scores.append(ndcg_score([s_true], [s_pred_rand]))
+
+                        seasonal_random_ndcg.append(np.mean(run_scores))
 
                 cumulative_results.append({
                     'Threshold': f'{t:.1f}≤',
                     'MAE': current_mae,
                     'NDCG': np.mean(seasonal_ndcg) if seasonal_ndcg else np.nan,
-                    'Random NDCG': np.mean(random_ndcg) if random_ndcg else np.nan,
+                    'Random NDCG': np.mean(seasonal_random_ndcg) if seasonal_random_ndcg else np.nan,
                     'Count': mask.sum()
                 })
 
