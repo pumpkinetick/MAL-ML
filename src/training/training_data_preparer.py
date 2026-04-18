@@ -64,9 +64,9 @@ class TrainingDataPreparer:
         self.X_test = None
         self.y_test = None
 
-        self.preprocessor = self.get_preprocessor()
+        self.preprocessor = self._get_preprocessor()
 
-    def get_preprocessor(self) -> ColumnTransformer:
+    def _get_preprocessor(self) -> ColumnTransformer:
         """
         Builds a ``ColumnTransformer`` that applies the proper imputation
         and encoding strategy to each feature group:

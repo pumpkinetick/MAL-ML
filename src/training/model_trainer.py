@@ -19,10 +19,10 @@ class ModelTrainer:
     def __init__(self):
         self.model = None
 
-    def build_pipeline(self,
-                       preprocessor: ColumnTransformer,
-                       model_params: dict
-                       ):
+    def _build_pipeline(self,
+                        preprocessor: ColumnTransformer,
+                        model_params: dict
+                        ):
         """
         Builds a new ``Pipeline`` combining the given preprocessor with a
         ``RandomForestRegressor`` and stores it in ``model``.
@@ -55,7 +55,7 @@ class ModelTrainer:
             ``RandomForestRegressor`` when the pipeline is built.
         """
         if self.model is None:
-            self.build_pipeline(
+            self._build_pipeline(
                 preprocessor=preprocessor,
                 model_params=model_params
             )

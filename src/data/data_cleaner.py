@@ -26,11 +26,11 @@ class DataCleaner:
         """
         Runs the full cleaning pipeline on ``cleaned_dataset``.
         """
-        self.filter_dataset()
-        self.fix_dtypes()
-        self.sort_dataset()
+        self._filter_dataset()
+        self._fix_dtypes()
+        self._sort_dataset()
 
-    def filter_dataset(self):
+    def _filter_dataset(self):
         """
         Selects relevant columns, drops rows with missing key values,
         keeps only finished-airing TV entries, and groups rare sources
@@ -68,7 +68,7 @@ class DataCleaner:
             lambda x: 'Other' if x in rare_sources else x
         )
 
-    def fix_dtypes(self):
+    def _fix_dtypes(self):
         """
         Converts columns to their proper types:
         ``Released_Year`` to ``int``, trims whitespace from ``Rating``,
@@ -96,7 +96,7 @@ class DataCleaner:
             .apply(convert_duration_to_minutes)
         )
 
-    def sort_dataset(self):
+    def _sort_dataset(self):
         """
         Sorts the dataset chronologically by ``Released_Year`` and then
         by ``Released_Season`` (Winter → Spring → Summer → Fall).
