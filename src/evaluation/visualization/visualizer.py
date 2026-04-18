@@ -147,17 +147,8 @@ class Visualizer:
             ``'Threshold'``, ``'MAE'``, ``'NDCG'``, ``'Random NDCG'``,
             and ``'Count'``.
         """
-        fig, ax_mae = plt.subplots(figsize=(12, 6))
+        fig, ax_ndcg = plt.subplots(figsize=(12, 6))
 
-        sns.lineplot(
-            data=cumulative_df, x='Threshold', y='MAE', ax=ax_mae,
-            color='#d4a368', marker='o', label='MAE',
-            markeredgewidth=0, markeredgecolor='none'
-        )
-        ax_mae.set_ylabel('MAE')
-        ax_mae.set_xlabel('Score Threshold')
-
-        ax_ndcg = ax_mae.twinx()
         sns.lineplot(
             data=cumulative_df, x='Threshold', y='NDCG', ax=ax_ndcg,
             color='#8FB8CF', marker='s', label='Model NDCG',
@@ -173,7 +164,14 @@ class Visualizer:
         y_min = max(0, min(all_ndcg_vals.dropna()) - 0.01)
         ax_ndcg.set_ylim(y_min, 1.0)
 
-        ax_ndcg.grid(visible=True, which='major', axis='both', linestyle='-', alpha=0.1)
+        ax_mae = ax_ndcg.twinx()
+        sns.lineplot(
+            data=cumulative_df, x='Threshold', y='MAE', ax=ax_mae,
+            color='#d4a368', marker='o', label='MAE',
+            markeredgewidth=0, markeredgecolor='none'
+        )
+        ax_mae.set_ylabel('MAE')
+        ax_mae.set_xlabel('Score Threshold')
 
         plt.title('Model Performance based on Anime Quality (Cumulative)')
 
