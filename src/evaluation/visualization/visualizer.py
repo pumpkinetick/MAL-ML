@@ -182,3 +182,49 @@ class Visualizer:
 
         fig.tight_layout()
         plt.show()
+
+    @staticmethod
+    def plot_regression_analysis(comparison_df: pd.DataFrame):
+        """
+        Renders a dual-subplot analysis:
+
+        - Scatter plot of actual vs. predicted scores with a regression line.
+        - Violin plot showing the distribution of residuals (errors).
+
+        :param pd.DataFrame comparison_df: ``DataFrame`` with columns
+            ``'Actual Score'``, ``'Predicted Score'``, and ``'Difference'``.
+        """
+        fig, (ax_scatter, ax_violin) = plt.subplots(nrows=1, ncols=2, figsize=(16, 7))
+
+        lims = [
+            min(comparison_df['Actual Score'].min(), comparison_df['Predicted Score'].min()),
+            max(comparison_df['Actual Score'].max(), comparison_df['Predicted Score'].max())
+        ]
+        ax_scatter.plot(
+            lims, lims, linestyle='--', color='#abb2bf', alpha=0.5, label='Ideal (Perfect Match)'
+        )
+
+        sns.regplot(
+            data=comparison_df, x='Actual Score', y='Predicted Score',
+            ax=ax_scatter, color='#8FB8CF',
+            scatter_kws={'alpha': 0.5, 'edgecolor': 'none', 's': 40},
+            line_kws={'color': '#d4a368', 'label': 'Regression Line'}
+        )
+
+        ax_scatter.set_title('Actual vs. Predicted Scores')
+        ax_scatter.legend(loc='upper left')
+
+        sns.violinplot(
+            data=comparison_df, y='Difference', ax=ax_violin,
+            color='#8FB8CF', inner='quartile', linewidth=1.5
+        )
+        ax_violin.axhline(
+            0, color='#abb2bf', linestyle='--', alpha=0.5, zorder=-1
+        )
+
+        ax_violin.set_title('Distribution of Prediction Errors (Residuals)')
+        ax_violin.set_ylabel('Difference')
+        ax_violin.minorticks_on()
+
+        fig.tight_layout()
+        plt.show()

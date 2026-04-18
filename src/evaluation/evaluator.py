@@ -83,7 +83,7 @@ class Evaluator:
         :param pd.Series y_test: Test target values aligned
             with ``test_dataset``.
         :param int | None target_year: Year whose four seasons should be scored.
-            If ``None``, the entire dataset is considered.
+            If ``None``, all test items are included.
 
         :return: ``DataFrame`` with columns ``'Year'``, ``'Season'``, and ``'NDCG'``.
         """
@@ -120,12 +120,12 @@ class Evaluator:
                              test_dataset: pd.DataFrame,
                              X_test: pd.DataFrame,
                              y_test: pd.Series,
-                             target_season: str
+                             target_season: str | None = None
                              ) -> pd.DataFrame:
         """
         Returns the actual and predicted scores (and their difference)
-        for all test items that premiered in a specific season,
-        sorted by absolute error.
+        for items in a specific season, or for the entire test set if
+        no season is specified.
 
         :param pd.DataFrame test_dataset: Test subset including
             the ``'Premiered'`` and ``'Title'`` columns.
@@ -133,19 +133,22 @@ class Evaluator:
             with ``test_dataset``.
         :param pd.Series y_test: Test target values aligned
             with ``test_dataset``.
-        :param str target_season: Season label to filter by,
-            e.g. ``'Fall 2024'``.
+        :param str | None target_season: Optional season label (e.g. ``'Fall 2024'``).
+            If ``None``, all test items are included.
 
         :return: ``DataFrame`` with columns ``'Title'``, ``'Actual Score'``,
             ``'Predicted Score'``, and ``'Difference'``, sorted by
-            prediction accuracy.
+            absolute error ascending.
         """
         y_pred = self.model.predict(X_test)
 
-        if target_season not in test_dataset['Premiered'].unique():
-            raise ValueError(f'Invalid season: {target_season}')
+        if target_season:
+            if target_season not in test_dataset['Premiered'].unique():
+                raise ValueError(f'Invalid season: {target_season}')
+            mask = test_dataset['Premiered'] == target_season
+        else:
+            mask = pd.Series(data=True, index=test_dataset.index)
 
-        mask = test_dataset['Premiered'] == target_season
         if mask.any():
             comparison_df = pd.DataFrame({
                 'Title': test_dataset[mask]['title'].values,
