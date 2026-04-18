@@ -97,15 +97,14 @@ class Evaluator:
 
         def append_ndcg_score(t_year: int, t_season: str):
             mask = test_dataset['Premiered'] == f'{t_season} {t_year}'
-            if mask.any():
+            if mask.sum() > 1:
                 true_rel = y_test[mask].values
                 pred_scores = y_pred[np.where(mask)[0]]
 
-                if len(true_rel) > 1:
-                    ndcg = ndcg_score([true_rel], [pred_scores])
-                    seasonal_ndcg.append(
-                        {'Year': t_year, 'Season': t_season, 'NDCG': ndcg}
-                    )
+                ndcg = ndcg_score([true_rel], [pred_scores])
+                seasonal_ndcg.append(
+                    {'Year': t_year, 'Season': t_season, 'NDCG': ndcg}
+                )
 
         seasons = ['Winter', 'Spring', 'Summer', 'Fall']
         for season in seasons:
@@ -235,3 +234,53 @@ class Evaluator:
         }).sort_values(by='Importance', ascending=False)
 
         return importance_df
+
+    def get_cumulative_score_metrics(self,
+                                     test_dataset: pd.DataFrame,
+                                     X_test: pd.DataFrame,
+                                     y_test: pd.Series,
+                                     step: float = 1.0
+                                     ) -> pd.DataFrame:
+        """
+        Computes MAE and average seasonal NDCG for cumulative score
+        thresholds (e.g., Score >= 1, >= 2, ..., >= 9).
+
+        :param pd.DataFrame test_dataset: Test subset including
+            the ``'Score'`` column.
+        :param pd.DataFrame X_test: Test feature matrix aligned
+            with ``test_dataset``.
+        :param pd.Series y_test: Test target values aligned
+            with ``test_dataset``.
+        :param float step: The increment between thresholds. Defaults to 1.0.
+
+        :return: ``DataFrame`` with columns ``'Threshold'``, ``'MAE'``,
+            ``'NDCG'``, and ``'Count'``.
+        """
+        y_pred = self.model.predict(X_test)
+
+        thresholds = np.arange(1.0, 10.0, step)
+
+        cumulative_results = list()
+        for t in thresholds:
+            mask = y_test >= t
+            if mask.sum() > 1:
+                current_mae = mean_absolute_error(y_test[mask], y_pred[np.where(mask)[0]])
+
+                relevant_seasons = test_dataset[mask]['Premiered'].unique()
+
+                seasonal_ndcg = list()
+                for season in relevant_seasons:
+                    s_mask = (test_dataset['Premiered'] == season) & mask
+                    if s_mask.sum() > 1:
+                        s_true = y_test[s_mask].values
+                        s_pred = y_pred[np.where(s_mask)[0]]
+                        seasonal_ndcg.append(ndcg_score([s_true], [s_pred]))
+
+                cumulative_results.append({
+                    'Threshold': f'≥{t:.1f}',
+                    'MAE': current_mae,
+                    'NDCG': np.mean(seasonal_ndcg) if seasonal_ndcg else np.nan,
+                    'Count': mask.sum()
+                })
+
+        return pd.DataFrame(cumulative_results)

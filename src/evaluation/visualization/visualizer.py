@@ -80,12 +80,12 @@ class Visualizer:
                          'Summer': '#d4a368',
                          'Fall': '#B07D62'},
                 hue='Season',
-                whis=(0, 100)
+                whis=(0.0, 100.0)
             )
-            plt.title(f'Seasonal NDCG distribution')
+            plt.title(f'Seasonal NDCG Distribution')
             y_min = max(0, min(seasonal_ndcg_df['NDCG']) - 0.01)
 
-        plt.ylim(y_min, 1)
+        plt.ylim(y_min, 1.0)
         plt.show()
 
     @staticmethod
@@ -134,4 +134,45 @@ class Visualizer:
             x='Importance', y='Feature'
         )
         plt.title(f'Top {top_n} Features by Importance')
+        plt.show()
+
+    @staticmethod
+    def plot_cumulative_score_performance(cumulative_df: pd.DataFrame):
+        """
+        Plots MAE and NDCG metrics across cumulative score thresholds.
+
+        :param pd.DataFrame cumulative_df: ``DataFrame`` as returned by
+            ``Evaluator.get_cumulative_score_metrics()``, with columns
+             ``'Threshold'``, ``'MAE'``, ``'NDCG'``, and ``'Count'``.
+        """
+        fig, ax_mae = plt.subplots(figsize=(12, 6))
+
+        sns.lineplot(
+            data=cumulative_df, x='Threshold', y='MAE', ax=ax_mae,
+            color='#d4a368', marker='o', label='MAE',
+            markeredgewidth=0, markeredgecolor='none'
+        )
+        ax_mae.set_ylabel('MAE')
+        ax_mae.set_xlabel('Score Threshold')
+
+        ax_ndcg = ax_mae.twinx()
+        sns.lineplot(
+            data=cumulative_df, x='Threshold', y='NDCG', ax=ax_ndcg,
+            color='#8FB8CF', marker='s', label='NDCG',
+            markeredgewidth=0, markeredgecolor='none'
+        )
+        ax_ndcg.set_ylabel('Average Seasonal NDCG')
+        y_min = max(0, min(cumulative_df['NDCG']) - 0.01)
+        ax_ndcg.set_ylim(y_min, 1.0)
+
+        ax_ndcg.grid(visible=True, which='major', axis='both', linestyle='-', alpha=0.1)
+
+        plt.title('Model Performance based on Anime Quality (Cumulative)')
+
+        lines1, labels1 = ax_mae.get_legend_handles_labels()
+        lines2, labels2 = ax_ndcg.get_legend_handles_labels()
+        ax_mae.get_legend().remove()
+        ax_ndcg.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+
+        fig.tight_layout()
         plt.show()
