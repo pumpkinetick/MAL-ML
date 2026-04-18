@@ -67,11 +67,12 @@ class Evaluator:
                           test_dataset: pd.DataFrame,
                           X_test: pd.DataFrame,
                           y_test: pd.Series,
-                          target_year: int
+                          target_year: int | None = None
                           ) -> pd.DataFrame:
         """
-        Computes the NDCG ranking score for each season of a target
-        year, treating true scores as relevance values.
+        Computes the NDCG ranking score for each season of each year
+        (or optionally for ``target_year`` only),
+        treating true scores as relevance values.
 
         Seasons with fewer than two test items are skipped.
 
@@ -81,24 +82,38 @@ class Evaluator:
             with ``test_dataset``.
         :param pd.Series y_test: Test target values aligned
             with ``test_dataset``.
-        :param int target_year: Year whose four seasons should be scored.
+        :param int | None target_year: Year whose four seasons should be scored.
+            If ``None``, the entire dataset is considered.
 
-        :return: ``DataFrame`` with columns ``'Season'`` and ``'NDCG'``.
+        :return: ``DataFrame`` with columns ``'Year'``, ``'Season'``, and ``'NDCG'``.
         """
         y_pred = self.model.predict(X_test)
 
-        seasons = ['Winter', 'Spring', 'Summer', 'Fall']
+        valid_years = test_dataset['Released_Year'].unique()
+        if target_year and target_year not in valid_years:
+            raise ValueError(f'Invalid target year: {target_year}')
 
         seasonal_ndcg = list()
-        for season in seasons:
-            mask = test_dataset['Premiered'] == f'{season} {target_year}'
+
+        def append_ndcg_score(t_year: int, t_season: str):
+            mask = test_dataset['Premiered'] == f'{t_season} {t_year}'
             if mask.any():
                 true_rel = y_test[mask].values
                 pred_scores = y_pred[np.where(mask)[0]]
 
                 if len(true_rel) > 1:
                     ndcg = ndcg_score([true_rel], [pred_scores])
-                    seasonal_ndcg.append({'Season': season, 'NDCG': ndcg})
+                    seasonal_ndcg.append(
+                        {'Year': t_year, 'Season': t_season, 'NDCG': ndcg}
+                    )
+
+        seasons = ['Winter', 'Spring', 'Summer', 'Fall']
+        for season in seasons:
+            if target_year:
+                append_ndcg_score(t_year=target_year, t_season=season)
+            else:
+                for year in valid_years:
+                    append_ndcg_score(t_year=year, t_season=season)
 
         return pd.DataFrame(seasonal_ndcg)
 
@@ -126,6 +141,9 @@ class Evaluator:
             ``DataFrame`` is returned if no rows match.
         """
         y_pred = self.model.predict(X_test)
+
+        if target_season not in test_dataset['Premiered'].unique():
+            raise ValueError(f'Invalid season: {target_season}')
 
         mask = test_dataset['Premiered'] == target_season
         if mask.any():

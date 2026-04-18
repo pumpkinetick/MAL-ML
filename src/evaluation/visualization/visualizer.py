@@ -43,33 +43,48 @@ class Visualizer:
         plt.show()
 
     @staticmethod
-    def plot_seasonal_ndcg(seasonal_ndcg_df: pd.DataFrame,
-                           target_year: int
-                           ):
+    def plot_seasonal_ndcg(seasonal_ndcg_df: pd.DataFrame):
         """
-        Plots NDCG scores across the four seasons of a given year.
+        Plots the NDCG score distribution for each of the four seasons
+        as a box plot, or optionally as a bar chart in the case of
+        only one year of data.
 
         The y-axis lower bound is adjusted to zoom in on the score
         range while staying capped at 1.
 
         :param pd.DataFrame seasonal_ndcg_df: ``DataFrame`` as returned by
             ``Evaluator.get_seasonal_ndcg()``, with columns
-            ``'Season'`` and ``'NDCG'``.
-        :param int target_year: Year represented by the data;
-            used only in the plot title.
+            ``'Year'``, ``'Season'``, and ``'NDCG'``.
         """
         plt.figure(figsize=(8, 6))
-        sns.barplot(
-            data=seasonal_ndcg_df,
-            x='Season', y='NDCG',
-            palette={'Winter': '#8FB8CF',
-                     'Spring': '#98B486',
-                     'Summer': '#d4a368',
-                     'Fall': '#B07D62'},
-            hue='Season'
-        )
-        plt.title(f'Seasonal NDCG for {target_year}')
-        y_min = max(0, min(seasonal_ndcg_df['NDCG']) - 0.1)
+
+        years = seasonal_ndcg_df['Year'].unique()
+        if len(years) == 1:
+            sns.barplot(
+                data=seasonal_ndcg_df,
+                x='Season', y='NDCG',
+                palette={'Winter': '#8FB8CF',
+                         'Spring': '#98B486',
+                         'Summer': '#d4a368',
+                         'Fall': '#B07D62'},
+                hue='Season'
+            )
+            plt.title(f'Seasonal NDCG for {years[0]}')
+            y_min = max(0, min(seasonal_ndcg_df['NDCG']) - 0.1)
+        else:
+            sns.boxplot(
+                data=seasonal_ndcg_df,
+                x='Season', y='NDCG',
+                palette={'Winter': '#8FB8CF',
+                         'Spring': '#98B486',
+                         'Summer': '#d4a368',
+                         'Fall': '#B07D62'},
+                hue='Season',
+                whis=(0, 100)
+            )
+            plt.title(f'Seasonal NDCG distribution')
+            y_min = max(0, min(seasonal_ndcg_df['NDCG']) - 0.01)
+
         plt.ylim(y_min, 1)
         plt.show()
 
