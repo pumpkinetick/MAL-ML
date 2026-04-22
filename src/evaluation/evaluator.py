@@ -21,52 +21,60 @@ class Evaluator:
 
     :param Pipeline model: Trained ``scikit-learn`` ``Pipeline`` with a
         ``'preprocessor'`` step and a ``'regressor'`` step.
+    :param pd.DataFrame train_dataset: Full training subset (with metadata columns).
+    :param pd.DataFrame X_train: Training feature matrix.
+    :param pd.Series y_train: Training target (``Score``).
+    :param pd.DataFrame test_dataset: Full test subset (with metadata columns).
+    :param pd.DataFrame X_test: Test feature matrix.
+    :param pd.Series y_test: Test target (``Score``).
 
-    :ivar model: The wrapped pipeline.
+    :ivar pd.Series y_train_pred: Predicted scores for the training set.
+    :ivar pd.Series y_test_pred: Predicted scores for the test set.
     """
 
-    def __init__(self, model: Pipeline):
+    def __init__(self,
+                 model: Pipeline,
+                 train_dataset: pd.DataFrame,
+                 X_train: pd.DataFrame,
+                 y_train: pd.Series,
+                 test_dataset: pd.DataFrame,
+                 X_test: pd.DataFrame,
+                 y_test: pd.Series
+                 ):
         self.model = model
 
-    def get_overall_metrics(self,
-                            X_train: pd.DataFrame,
-                            y_train: pd.Series,
-                            X_test: pd.DataFrame,
-                            y_test: pd.Series
-                            ) -> pd.DataFrame:
+        self.train_dataset = train_dataset
+        self.y_train = y_train
+
+        self.test_dataset = test_dataset
+        self.y_test = y_test
+
+        self.y_train_pred = self.model.predict(X_train)
+        self.y_test_pred = self.model.predict(X_test)
+
+    def get_overall_metrics(self) -> pd.DataFrame:
         """
         Computes MAE, RMSE, and R² on both the training and test sets.
-
-        :param pd.DataFrame X_train: Training feature matrix.
-        :param pd.Series y_train: Training target values.
-        :param pd.DataFrame X_test: Test feature matrix.
-        :param pd.Series y_test: Test target values.
 
         :return: ``DataFrame`` with one row per dataset
             (``'Train'`` and ``'Test'``) and columns
             ``'MAE'``, ``'RMSE'``, ``'R$^2$'``.
         """
-        y_train_pred = self.model.predict(X_train)
-        y_test_pred = self.model.predict(X_test)
-
         metrics = [
             {'Dataset': 'Train',
-             'MAE': mean_absolute_error(y_train, y_train_pred),
-             'RMSE': np.sqrt(mean_squared_error(y_train, y_train_pred)),
-             'R$^2$': r2_score(y_train, y_train_pred)},
+             'MAE': mean_absolute_error(self.y_train, self.y_train_pred),
+             'RMSE': np.sqrt(mean_squared_error(self.y_train, self.y_train_pred)),
+             'R$^2$': r2_score(self.y_train, self.y_train_pred)},
 
             {'Dataset': 'Test',
-             'MAE': mean_absolute_error(y_test, y_test_pred),
-             'RMSE': np.sqrt(mean_squared_error(y_test, y_test_pred)),
-             'R$^2$': r2_score(y_test, y_test_pred)}
+             'MAE': mean_absolute_error(self.y_test, self.y_test_pred),
+             'RMSE': np.sqrt(mean_squared_error(self.y_test, self.y_test_pred)),
+             'R$^2$': r2_score(self.y_test, self.y_test_pred)}
         ]
 
         return pd.DataFrame(metrics)
 
     def get_seasonal_ndcg(self,
-                          test_dataset: pd.DataFrame,
-                          X_test: pd.DataFrame,
-                          y_test: pd.Series,
                           target_year: int | None = None
                           ) -> pd.DataFrame:
         """
@@ -76,30 +84,22 @@ class Evaluator:
 
         Seasons with fewer than two test items are skipped.
 
-        :param pd.DataFrame test_dataset: Test subset including
-            the ``'Premiered'`` column.
-        :param pd.DataFrame X_test: Test feature matrix aligned
-            with ``test_dataset``.
-        :param pd.Series y_test: Test target values aligned
-            with ``test_dataset``.
         :param int | None target_year: Year whose four seasons should be scored.
             If ``None``, all test items are included.
 
         :return: ``DataFrame`` with columns ``'Year'``, ``'Season'``, and ``'NDCG'``.
         """
-        y_pred = self.model.predict(X_test)
-
-        valid_years = test_dataset['Released_Year'].unique()
+        valid_years = self.test_dataset['Released_Year'].unique()
         if target_year and target_year not in valid_years:
             raise ValueError(f'Invalid target year: {target_year}')
 
         seasonal_ndcg = list()
 
         def append_ndcg_score(t_year: int, t_season: str):
-            mask = test_dataset['Premiered'] == f'{t_season} {t_year}'
+            mask = self.test_dataset['Premiered'] == f'{t_season} {t_year}'
             if mask.sum() > 1:
-                true_rel = y_test[mask].values
-                pred_scores = y_pred[np.where(mask)[0]]
+                true_rel = self.y_test[mask].values
+                pred_scores = self.y_test_pred[np.where(mask)[0]]
 
                 ndcg = ndcg_score([true_rel], [pred_scores])
                 seasonal_ndcg.append(
@@ -117,9 +117,6 @@ class Evaluator:
         return pd.DataFrame(seasonal_ndcg)
 
     def get_score_comparison(self,
-                             test_dataset: pd.DataFrame,
-                             X_test: pd.DataFrame,
-                             y_test: pd.Series,
                              target_season: str | None = None
                              ) -> pd.DataFrame:
         """
@@ -127,12 +124,6 @@ class Evaluator:
         for items in a specific season, or for the entire test set if
         no season is specified.
 
-        :param pd.DataFrame test_dataset: Test subset including
-            the ``'Premiered'`` and ``'Title'`` columns.
-        :param pd.DataFrame X_test: Test feature matrix aligned
-            with ``test_dataset``.
-        :param pd.Series y_test: Test target values aligned
-            with ``test_dataset``.
         :param str | None target_season: Optional season label (e.g. ``'Fall 2024'``).
             If ``None``, all test items are included.
 
@@ -140,21 +131,19 @@ class Evaluator:
             ``'Predicted Score'``, and ``'Difference'``, sorted by
             absolute error ascending.
         """
-        y_pred = self.model.predict(X_test)
-
         if target_season:
-            if target_season not in test_dataset['Premiered'].unique():
+            if target_season not in self.test_dataset['Premiered'].unique():
                 raise ValueError(f'Invalid season: {target_season}')
-            mask = test_dataset['Premiered'] == target_season
+            mask = self.test_dataset['Premiered'] == target_season
         else:
-            mask = pd.Series(data=True, index=test_dataset.index)
+            mask = pd.Series(data=True, index=self.test_dataset.index)
 
         if mask.any():
             comparison_df = pd.DataFrame({
-                'Title': test_dataset[mask]['title'].values,
-                'Actual Score': y_test[mask].values,
-                'Predicted Score': y_pred[np.where(mask)[0]],
-                'Difference': y_pred[np.where(mask)[0]] - y_test[mask].values
+                'Title': self.test_dataset[mask]['title'].values,
+                'Actual Score': self.y_test[mask].values,
+                'Predicted Score': self.y_test_pred[np.where(mask)[0]],
+                'Difference': self.y_test_pred[np.where(mask)[0]] - self.y_test[mask].values
             })
 
             comparison_df['Abs_Error'] = comparison_df['Difference'].abs()
@@ -164,37 +153,24 @@ class Evaluator:
 
         return pd.DataFrame()
 
-    def get_metrics_by_source(self,
-                              test_dataset: pd.DataFrame,
-                              X_test: pd.DataFrame,
-                              y_test: pd.Series
-                              ) -> pd.DataFrame:
+    def get_metrics_by_source(self) -> pd.DataFrame:
         """
         Computes MAE, RMSE, and row count for each ``Source`` value in
         the test set, sorted ascending by MAE. The ``'Other'`` bucket
         is excluded.
 
-        :param pd.DataFrame test_dataset: Test subset including
-            the ``'Source'`` column.
-        :param pd.DataFrame X_test: Test feature matrix aligned
-            with ``test_dataset``.
-        :param pd.Series y_test: Test target values aligned
-            with ``test_dataset``.
-
         :return: ``DataFrame`` with columns ``'Source'``, ``'MAE'``,
             ``'RMSE'``, and ``'Count'``.
         """
-        y_pred = self.model.predict(X_test)
-
         source_metrics = list()
-        for source in test_dataset['Source'].unique():
+        for source in self.test_dataset['Source'].unique():
             if source == 'Other':
                 continue
 
-            mask = test_dataset['Source'] == source
+            mask = self.test_dataset['Source'] == source
             if mask.any():
-                s_true = y_test[mask]
-                s_pred = y_pred[np.where(mask)[0]]
+                s_true = self.y_test[mask]
+                s_pred = self.y_test_pred[np.where(mask)[0]]
 
                 source_metrics.append({
                     'Source': source,
@@ -247,9 +223,6 @@ class Evaluator:
         return importance_df
 
     def get_cumulative_score_metrics(self,
-                                     test_dataset: pd.DataFrame,
-                                     X_test: pd.DataFrame,
-                                     y_test: pd.Series,
                                      step: float = 1.0,
                                      random_runs: int = 10,
                                      seed: int = 42
@@ -258,12 +231,6 @@ class Evaluator:
         Computes MAE, average seasonal NDCG, and a stable random NDCG baseline.
         The baseline is the mean of multiple seeded random permutations.
 
-        :param pd.DataFrame test_dataset: Test subset including
-            the ``'Score'`` column.
-        :param pd.DataFrame X_test: Test feature matrix aligned
-            with ``test_dataset``.
-        :param pd.Series y_test: Test target values aligned
-            with ``test_dataset``.
         :param float step: The increment between thresholds. Defaults to 1.0.
         :param int random_runs: Number of random attempts to average for
             the baseline.
@@ -272,27 +239,27 @@ class Evaluator:
         :return: ``DataFrame`` with columns ``'Threshold'``, ``'MAE'``,
             ``'NDCG'``, ``'Random NDCG'``, and ``'Count'``.
         """
-        y_pred = self.model.predict(X_test)
-
         np.random.seed(seed)
 
         thresholds = np.arange(1.0, 10.0, step)
 
         cumulative_results = list()
         for t in thresholds:
-            mask = y_test >= t
+            mask = self.y_test >= t
             if mask.sum() > 1:
-                current_mae = mean_absolute_error(y_test[mask], y_pred[np.where(mask)[0]])
+                current_mae = mean_absolute_error(
+                    self.y_test[mask], self.y_test_pred[np.where(mask)[0]]
+                )
 
-                relevant_seasons = test_dataset[mask]['Premiered'].unique()
+                relevant_seasons = self.test_dataset[mask]['Premiered'].unique()
 
                 seasonal_ndcg = list()
                 seasonal_random_ndcg = list()
                 for season in relevant_seasons:
-                    s_mask = (test_dataset['Premiered'] == season) & mask
+                    s_mask = (self.test_dataset['Premiered'] == season) & mask
                     if s_mask.sum() > 1:
-                        s_true = y_test[s_mask].values
-                        s_pred = y_pred[np.where(s_mask)[0]]
+                        s_true = self.y_test[s_mask].values
+                        s_pred = self.y_test_pred[np.where(s_mask)[0]]
 
                         seasonal_ndcg.append(ndcg_score([s_true], [s_pred]))
 
