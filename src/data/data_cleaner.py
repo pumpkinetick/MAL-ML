@@ -71,14 +71,13 @@ class DataCleaner:
     def _fix_dtypes(self):
         """
         Converts columns to their proper types:
-        ``Released_Year`` to ``int``, trims whitespace from ``Rating``,
-        and parses ``Duration`` strings (e.g. ``"24 min"`` or ``"30 sec"``)
+        ``Released_Year`` to ``int`` and parses ``Duration`` strings
+        (e.g. ``"24 min"`` or ``"30 sec"``)
         into a numeric number of minutes.
         """
         self.cleaned_dataset['Released_Year'] = (
             self.cleaned_dataset['Released_Year'].astype(int)
         )
-        self.cleaned_dataset['Rating'] = self.cleaned_dataset['Rating'].str.strip()
 
         def convert_duration_to_minutes(duration_str: str) -> float:
             match = re.search(pattern=r'(\d+)\s*(min|sec)', string=str(duration_str))
