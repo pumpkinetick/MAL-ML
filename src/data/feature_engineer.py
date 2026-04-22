@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
@@ -77,8 +77,8 @@ class FeatureEngineer:
     def _add_historical_metric(self,
                                source_col: str,
                                metric_name: str,
-                               func: Callable,
-                               k_years: int | None = None
+                               k_years: Optional[int],
+                               func: Callable
                                ):
         """
         Computes a single historical metric and appends it as a new
@@ -96,10 +96,10 @@ class FeatureEngineer:
         :param str source_col: Name of the column containing a
             comma-separated list of entities (e.g. ``'Studios'``).
         :param str metric_name: Suffix used to name the generated column.
+        :param Optional[int] k_years: Optional rolling window size in years.
+            If ``None``, the entire past is considered.
         :param Callable func: Aggregation function that takes a list of valid
             per-entity history lists and returns a numeric score.
-        :param int | None k_years: Optional rolling window size in years.
-            If ``None``, the entire past is considered.
         """
         history = dict()
 

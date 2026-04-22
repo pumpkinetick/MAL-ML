@@ -113,10 +113,10 @@ class TrainingDataPreparer:
                     ('flatten', FunctionTransformer(lambda x: x.flatten())),
                     ('vec', CountVectorizer(
                         tokenizer=lambda x: x.split(', '),
-                        token_pattern=None,
-                        binary=True,
                         stop_words=None,
-                        min_df=2
+                        token_pattern=None,
+                        min_df=2,
+                        binary=True
                     ))
                 ]), [col])
             )

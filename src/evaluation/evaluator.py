@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
@@ -75,7 +77,7 @@ class Evaluator:
         return pd.DataFrame(metrics)
 
     def get_seasonal_ndcg(self,
-                          target_year: int | None = None
+                          target_year: Optional[int] = None
                           ) -> pd.DataFrame:
         """
         Computes the NDCG ranking score for each season of each year
@@ -84,7 +86,7 @@ class Evaluator:
 
         Seasons with fewer than two test items are skipped.
 
-        :param int | None target_year: Year whose four seasons should be scored.
+        :param Optional[int] target_year: Year whose four seasons should be scored.
             If ``None``, all test items are included.
 
         :return: ``DataFrame`` with columns ``'Year'``, ``'Season'``, and ``'NDCG'``.
@@ -117,14 +119,14 @@ class Evaluator:
         return pd.DataFrame(seasonal_ndcg)
 
     def get_score_comparison(self,
-                             target_season: str | None = None
+                             target_season: Optional[str] = None
                              ) -> pd.DataFrame:
         """
         Returns the actual and predicted scores (and their difference)
         for items in a specific season, or for the entire test set if
         no season is specified.
 
-        :param str | None target_season: Optional season label (e.g. ``'Fall 2024'``).
+        :param Optional[str] target_season: Optional season label (e.g. ``'Fall 2024'``).
             If ``None``, all test items are included.
 
         :return: ``DataFrame`` with columns ``'Title'``, ``'Actual Score'``,
