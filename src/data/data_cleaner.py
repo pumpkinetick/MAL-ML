@@ -37,7 +37,7 @@ class DataCleaner:
         (fewer than 10 occurrences) under ``'Other'``.
         """
         management_cols = [
-            'myanimelist_id', 'title', 'Type', 'Status',
+            'title', 'Type', 'Status',
             'Premiered', 'Released_Season', 'Released_Year'
         ]
         feature_cols = [
