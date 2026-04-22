@@ -149,9 +149,13 @@ class Evaluator:
             })
 
             comparison_df['Abs_Error'] = comparison_df['Difference'].abs()
-            comparison_df = comparison_df.sort_values(by='Abs_Error', ascending=True)
+            comparison_df.sort_values(by='Abs_Error', ascending=True, inplace=True)
+            comparison_df.drop(columns=['Abs_Error'], inplace=True)
 
-            return comparison_df.drop(columns=['Abs_Error'])
+            comparison_df.reset_index(drop=True, inplace=True)
+            comparison_df.index += 1
+
+            return comparison_df
 
         return pd.DataFrame()
 
