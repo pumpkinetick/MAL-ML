@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import joblib
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -61,26 +63,26 @@ class ModelTrainer:
             )
         self.model.fit(X_train, y_train)
 
-    def save_model(self, filename: str):
+    def save_model(self, file_path: Path):
         """
         Serializes ``model`` to disk using ``joblib``.
 
-        :param str filename: Path where the model should be written.
+        :param Path file_path: Path where the model should be written.
         """
         if self.model:
-            joblib.dump(self.model, filename)
-            print(f'Model saved to {filename}.')
+            joblib.dump(self.model, file_path)
+            print(f'Model saved to {file_path}.')
         else:
             print('No model to save.')
 
-    def load_model(self, filename: str):
+    def load_model(self, file_path: Path):
         """
         Loads a previously saved model from the disk into ``model``.
 
-        :param str filename: Path to the ``joblib`` file to load.
+        :param Path file_path: Path to the ``joblib`` file to load.
         """
         try:
-            self.model = joblib.load(filename)
-            print(f'Model loaded from {filename}.')
+            self.model = joblib.load(file_path)
+            print(f'Model loaded from {file_path}.')
         except FileNotFoundError:
-            print(f'File {filename} not found.')
+            print(f'File {file_path} not found.')
