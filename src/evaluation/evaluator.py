@@ -252,7 +252,7 @@ class Evaluator:
         cumulative_results = list()
         for t in thresholds:
             mask = self.y_test >= t
-            if mask.sum() > 1:
+            if mask.sum() > 5:
                 current_mae = mean_absolute_error(
                     self.y_test[mask], self.y_test_pred[np.where(mask)[0]]
                 )
@@ -263,7 +263,7 @@ class Evaluator:
                 seasonal_random_ndcg = list()
                 for season in relevant_seasons:
                     s_mask = (self.test_dataset['Premiered'] == season) & mask
-                    if s_mask.sum() > 1:
+                    if s_mask.sum() > 5:
                         s_true = self.y_test[s_mask].values
                         s_pred = self.y_test_pred[np.where(s_mask)[0]]
 
