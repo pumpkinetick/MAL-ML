@@ -99,7 +99,7 @@ class Evaluator:
 
         def append_ndcg_score(t_year: int, t_season: str):
             mask = self.test_dataset['Premiered'] == f'{t_season} {t_year}'
-            if mask.sum() > 1:
+            if mask.sum() > 5:
                 true_rel = self.y_test[mask].values
                 pred_scores = self.y_test_pred[np.where(mask)[0]]
 
