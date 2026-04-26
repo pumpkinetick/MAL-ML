@@ -38,6 +38,7 @@ class Visualizer:
             )
             axes[i].set_title(f'Overall {metric}')
             axes[i].set_ylabel('Score')
+            axes[i].grid(axis='y')
 
         plt.tight_layout()
         plt.savefig('overall_metrics.pdf')
@@ -71,6 +72,7 @@ class Visualizer:
                 hue='Season'
             )
             plt.title(f'Seasonal NDCG for {years[0]}')
+            plt.grid(axis='y')
             y_min = max(0, min(seasonal_ndcg_df['NDCG']) - 0.1)
         else:
             sns.boxplot(
@@ -117,6 +119,7 @@ class Visualizer:
 
         plt.xticks(rotation=45)
         plt.title('MAE by Source')
+        plt.grid(axis='y')
 
         plt.tight_layout()
         plt.savefig('mae_by_source.pdf')
