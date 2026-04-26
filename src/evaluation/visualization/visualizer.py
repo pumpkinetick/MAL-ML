@@ -40,6 +40,7 @@ class Visualizer:
             axes[i].set_ylabel('Score')
 
         plt.tight_layout()
+        plt.savefig('overall_metrics.pdf')
         plt.show()
 
     @staticmethod
@@ -86,6 +87,9 @@ class Visualizer:
             y_min = max(0, min(seasonal_ndcg_df['NDCG']) - 0.01)
 
         plt.ylim(y_min, 1.0)
+
+        plt.tight_layout()
+        plt.savefig('seasonal_ndcg.pdf')
         plt.show()
 
     @staticmethod
@@ -113,6 +117,9 @@ class Visualizer:
 
         plt.xticks(rotation=45)
         plt.title('MAE by Source')
+
+        plt.tight_layout()
+        plt.savefig('mae_by_source.pdf')
         plt.show()
 
     @staticmethod
@@ -134,6 +141,9 @@ class Visualizer:
             x='Importance', y='Feature'
         )
         plt.title(f'Top {top_n} Features by Importance')
+
+        plt.tight_layout()
+        plt.savefig('feature_importances.pdf')
         plt.show()
 
     @staticmethod
@@ -180,7 +190,8 @@ class Visualizer:
         ax_mae.get_legend().remove()
         ax_ndcg.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
 
-        fig.tight_layout()
+        plt.tight_layout()
+        plt.savefig('cumulative_score_performance.pdf')
         plt.show()
 
     @staticmethod
@@ -225,5 +236,6 @@ class Visualizer:
         ax_violin.set_title('Distribution of Prediction Errors (Residuals)')
         ax_violin.set_ylabel('Difference')
 
-        fig.tight_layout()
+        plt.tight_layout()
+        plt.savefig('regression_analysis.pdf')
         plt.show()
